@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Resolume Monitor Settings</title>
+  <style>
+    :root { color-scheme: dark; font: 13px system-ui, sans-serif; }
+    body { margin: 14px; color: #eee; background: #2d2d2d; }
+    fieldset { border: 1px solid #555; border-radius: 6px; margin: 0 0 14px; padding: 12px; }
+    legend { color: #fff; font-weight: 650; }
+    label { display: grid; grid-template-columns: 42% 1fr; align-items: center; gap: 8px; margin: 8px 0; }
+    input, select, textarea, button { box-sizing: border-box; width: 100%; padding: 6px 8px; color: #fff; background: #3b3b3b; border: 1px solid #666; border-radius: 4px; }
+    textarea { min-height: 68px; resize: vertical; font-family: ui-monospace, monospace; }
+    button { background: #2563eb; border: 0; font-weight: 650; cursor: pointer; }
+    .hidden { display: none; }
+    .help { color: #bbb; font-size: 12px; line-height: 1.45; }
+    #error { color: #fecaca; background: #7f1d1d; padding: 8px; border-radius: 4px; margin-bottom: 10px; display: none; }
+    #saved { color: #bbf7d0; text-align: center; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <div id="error"></div>
+  <fieldset>
+    <legend data-i18n="connection">Arena Connection</legend>
+    <label><span data-i18n="host">Host</span><input id="host" value="127.0.0.1"></label>
+    <label><span data-i18n="arenaPort">Arena input port</span><input id="arenaPort" type="number" min="1" max="65535" value="7000"></label>
+    <label><span data-i18n="replyPort">Plugin reply port</span><input id="replyPort" type="number" min="1" max="65535" value="7001"></label>
+    <p class="help" data-i18n="connectionHelp">Enable OSC input in Resolume and configure OSC output to send replies to this computer and reply port.</p>
+  </fieldset>
+
+  <fieldset id="monitorSettings">
+    <legend data-i18n="monitoring">Monitoring</legend>
+    <label id="overrideRow"><span data-i18n="override">Override shared target</span><input id="overrideMonitoring" type="checkbox"></label>
+    <label><span data-i18n="target">Target</span><select id="monitorMode"><option value="specificLayer">Specific layer</option><option value="specificClip">Specific clip</option><option value="selectedLayer">Selected layer</option><option value="selectedClip">Selected clip</option></select></label>
+    <label class="layerField"><span data-i18n="layer">Layer</span><input id="layer" type="number" min="1" value="1"></label>
+    <label class="clipField"><span data-i18n="clip">Clip</span><input id="clip" type="number" min="1" value="1"></label>
+  </fieldset>
+
+  <fieldset id="displaySettings">
+    <legend data-i18n="display">Display</legend>
+    <label id="timeNameRow"><span data-i18n="showClipName">Show clip name</span><input id="showClipName" type="checkbox" checked></label>
+    <label><span data-i18n="warning">Warning seconds</span><input id="warningSeconds" type="number" min="0" value="30"></label>
+    <label><span data-i18n="critical">Critical seconds</span><input id="criticalSeconds" type="number" min="0" value="10"></label>
+    <label><span data-i18n="hours">Show hours</span><input id="showHours" type="checkbox"></label>
+    <label><span data-i18n="milliseconds">Show milliseconds</span><input id="showMilliseconds" type="checkbox"></label>
+    <label><span data-i18n="sign">Show T− sign</span><input id="showSign" type="checkbox" checked></label>
+  </fieldset>
+
+  <fieldset id="triggerSettings" class="hidden">
+    <legend data-i18n="trigger">Trigger Clip</legend>
+    <label><span data-i18n="triggerTarget">Trigger target</span><select id="triggerMode"><option value="selectedClip">Selected preview clip</option><option value="specificClip">Specific clip</option></select></label>
+    <label class="triggerSpecific"><span data-i18n="layer">Layer</span><input id="triggerLayer" type="number" min="1" value="1"></label>
+    <label class="triggerSpecific"><span data-i18n="clip">Clip</span><input id="triggerClip" type="number" min="1" value="1"></label>
+  </fieldset>
+
+  <fieldset id="nudgeSettings" class="hidden">
+    <legend data-i18n="adjustment">Adjustment</legend>
+    <label><span data-i18n="step">Step per press</span><input id="nudgeStep" type="number" min="0.001" max="1" step="0.001" value="0.05"></label>
+    <label><span data-i18n="holdDelay">Hold delay (ms)</span><input id="holdDelayMs" type="number" min="100" max="2000" step="10" value="400"></label>
+    <label><span data-i18n="repeatInterval">Repeat interval (ms)</span><input id="repeatIntervalMs" type="number" min="50" max="1000" step="10" value="120"></label>
+    <p class="help" data-i18n="stepHelp">Resolume relative value; 0.05 equals 5% of the parameter range.</p>
+  </fieldset>
+
+  <fieldset id="customSettings" class="hidden">
+    <legend data-i18n="custom">Custom OSC</legend>
+    <label><span data-i18n="pressAddress">Press address</span><input id="pressAddress" value="/composition/bypassed"></label>
+    <label><span data-i18n="pressArguments">Press arguments</span><textarea id="pressArguments">[{"type":"int","value":1}]</textarea></label>
+    <label><span data-i18n="releaseEnabled">Send on release</span><input id="releaseEnabled" type="checkbox"></label>
+    <label><span data-i18n="releaseAddress">Release address</span><input id="releaseAddress" value="/composition/bypassed"></label>
+    <label><span data-i18n="releaseArguments">Release arguments</span><textarea id="releaseArguments">[{"type":"int","value":0}]</textarea></label>
+    <p class="help" data-i18n="argumentHelp">Arguments are a JSON array. Types: int, float, string, boolean.</p>
+  </fieldset>
+
+  <button id="save" data-i18n="save">Save</button>
+  <div id="saved"></div>
+  <script src="settings.js"></script>
+</body>
+</html>

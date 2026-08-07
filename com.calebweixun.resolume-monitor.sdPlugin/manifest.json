@@ -1,0 +1,271 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Name": "Resolume Monitor",
+  "Version": "0.1.0.0",
+  "Author": "Caleb Wei",
+  "Description": "Monitor and control Resolume playback over OSC.",
+  "Category": "Resolume Monitor",
+  "CategoryIcon": "imgs/plugin/category-icon",
+  "Icon": "imgs/plugin/marketplace",
+  "CodePath": "bin/plugin.js",
+  "PropertyInspectorPath": "ui/settings.html",
+  "SDKVersion": 3,
+  "Software": {
+    "MinimumVersion": "7.1"
+  },
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "enabled"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "Actions": [
+    {
+      "Name": "Time Remaining",
+      "UUID": "com.calebweixun.resolume-monitor.time-remaining",
+      "Icon": "imgs/actions/monitor",
+      "Tooltip": "Show the monitored clip and its remaining time.",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "$B1",
+        "TriggerDescription": {
+          "Push": "Refresh",
+          "Touch": "Refresh"
+        }
+      },
+      "States": [
+        {
+          "Image": "imgs/actions/monitor",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Clip Name",
+      "UUID": "com.calebweixun.resolume-monitor.clip-name",
+      "Icon": "imgs/actions/monitor",
+      "Tooltip": "Show the monitored clip name.",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "TriggerDescription": {
+          "Push": "Refresh",
+          "Touch": "Refresh"
+        }
+      },
+      "States": [
+        {
+          "Image": "imgs/actions/monitor",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Clip Progress",
+      "UUID": "com.calebweixun.resolume-monitor.clip-progress",
+      "Icon": "imgs/actions/progress",
+      "Tooltip": "Show playback progress for the monitored clip.",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "$B1",
+        "TriggerDescription": {
+          "Push": "Refresh",
+          "Touch": "Refresh"
+        }
+      },
+      "States": [
+        {
+          "Image": "imgs/actions/progress",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Play / Pause Clip",
+      "UUID": "com.calebweixun.resolume-monitor.play",
+      "Icon": "imgs/actions/play",
+      "Tooltip": "Toggle play and pause for the monitored or configured clip.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/play",
+          "TitleAlignment": "bottom"
+        },
+        {
+          "Image": "imgs/actions/pause",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Restart Clip",
+      "UUID": "com.calebweixun.resolume-monitor.restart",
+      "Icon": "imgs/actions/restart",
+      "Tooltip": "Restart the monitored or configured clip.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/restart",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Trigger Clip",
+      "UUID": "com.calebweixun.resolume-monitor.trigger",
+      "Icon": "imgs/actions/trigger",
+      "Tooltip": "Trigger the selected preview clip or a clip by layer and number.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/trigger",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Clear Composition",
+      "UUID": "com.calebweixun.resolume-monitor.clear-composition",
+      "Icon": "imgs/actions/clear",
+      "Tooltip": "Disconnect all clips from the composition.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/clear",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Previous Column",
+      "UUID": "com.calebweixun.resolume-monitor.previous-column",
+      "Icon": "imgs/actions/column-prev",
+      "Tooltip": "Connect the previous composition column.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/column-prev",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Next Column",
+      "UUID": "com.calebweixun.resolume-monitor.next-column",
+      "Icon": "imgs/actions/column-next",
+      "Tooltip": "Connect the next composition column.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/column-next",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Increase Clip Speed",
+      "UUID": "com.calebweixun.resolume-monitor.speed-increase",
+      "Icon": "imgs/actions/speed-up",
+      "Tooltip": "Increase the selected clip speed by the configured step.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/speed-up",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Decrease Clip Speed",
+      "UUID": "com.calebweixun.resolume-monitor.speed-decrease",
+      "Icon": "imgs/actions/speed-down",
+      "Tooltip": "Decrease the selected clip speed by the configured step.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/speed-down",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Increase Clip Volume",
+      "UUID": "com.calebweixun.resolume-monitor.volume-increase",
+      "Icon": "imgs/actions/volume-up",
+      "Tooltip": "Increase the selected clip volume by the configured step.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/volume-up",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Decrease Clip Volume",
+      "UUID": "com.calebweixun.resolume-monitor.volume-decrease",
+      "Icon": "imgs/actions/volume-down",
+      "Tooltip": "Decrease the selected clip volume by the configured step.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/volume-down",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Custom OSC",
+      "UUID": "com.calebweixun.resolume-monitor.custom-osc",
+      "Icon": "imgs/actions/osc",
+      "Tooltip": "Send custom OSC messages on press and release.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/osc",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    }
+  ],
+  "UUID": "com.calebweixun.resolume-monitor"
+}

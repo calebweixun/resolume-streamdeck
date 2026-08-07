@@ -1,0 +1,8 @@
+node_modules/
+*.streamDeckPlugin
+*.log
+com.calebweixun.resolume-monitor.sdPlugin/bin/*
+!com.calebweixun.resolume-monitor.sdPlugin/bin/.gitkeep
+com.calebweixun.resolume-monitor.sdPlugin/logs/
+.DS_Store
+coverage/

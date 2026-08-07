@@ -1,0 +1,18 @@
+{
+  "Name": "Resolume 監看器",
+  "Description": "透過 OSC 監看與控制 Resolume 播放。",
+  "com.calebweixun.resolume-monitor.time-remaining": { "Name": "剩餘時間", "Tooltip": "顯示監看片段與剩餘時間。" },
+  "com.calebweixun.resolume-monitor.clip-name": { "Name": "片段名稱", "Tooltip": "顯示監看片段名稱。" },
+  "com.calebweixun.resolume-monitor.clip-progress": { "Name": "播放進度", "Tooltip": "顯示監看片段播放進度。" },
+  "com.calebweixun.resolume-monitor.play": { "Name": "播放／暫停片段" },
+  "com.calebweixun.resolume-monitor.restart": { "Name": "重播片段" },
+  "com.calebweixun.resolume-monitor.trigger": { "Name": "觸發選取片段" },
+  "com.calebweixun.resolume-monitor.clear-composition": { "Name": "清除 Composition", "Tooltip": "中斷 Composition 中的所有片段。" },
+  "com.calebweixun.resolume-monitor.previous-column": { "Name": "前一欄" },
+  "com.calebweixun.resolume-monitor.next-column": { "Name": "下一欄" },
+  "com.calebweixun.resolume-monitor.speed-increase": { "Name": "提高片段速度" },
+  "com.calebweixun.resolume-monitor.speed-decrease": { "Name": "降低片段速度" },
+  "com.calebweixun.resolume-monitor.volume-increase": { "Name": "提高片段音量" },
+  "com.calebweixun.resolume-monitor.volume-decrease": { "Name": "降低片段音量" },
+  "com.calebweixun.resolume-monitor.custom-osc": { "Name": "自訂 OSC" }
+}
