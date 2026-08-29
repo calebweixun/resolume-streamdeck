@@ -42,6 +42,7 @@ export class ArenaService {
   private explicitDurations = new Set<string>();
   private pendingNumberQueries = new Map<string, PendingNumberQuery>();
   private nudgeQueues = new Map<string, Promise<void>>();
+  private lastPositionPacketAt = new Map<string, number>();
   private lastPacketAt = Date.now();
 
   async configure(settings: GlobalSettings): Promise<void> {
@@ -110,9 +111,13 @@ export class ArenaService {
   send(address: string, args: OscValue[] = []): Promise<void> {
     const packet = encodeOscMessage(address, args);
     return new Promise((resolve, reject) => {
-      const socket = this.socket ?? dgram.createSocket("udp4");
+      // Keep commands off the busy reply socket. Queries must retain the
+      // configured reply-port source, while writes can use a short-lived
+      // socket and avoid waiting behind a flooded receive queue.
+      const isQuery = args.length === 1 && args[0] === "?";
+      const socket = isQuery && this.socket ? this.socket : dgram.createSocket("udp4");
       socket.send(packet, this.config.arenaPort, this.config.host, (error) => {
-        if (!this.socket) socket.close();
+        if (socket !== this.socket) socket.close();
         if (error) reject(error); else resolve();
       });
     });
@@ -254,6 +259,7 @@ export class ArenaService {
     if (this.staleTimer) clearInterval(this.staleTimer);
     this.pollTimer = undefined;
     this.staleTimer = undefined;
+    this.lastPositionPacketAt.clear();
     const socket = this.socket;
     this.socket = undefined;
     if (socket) await new Promise<void>((resolve) => socket.close(() => resolve()));
@@ -283,6 +289,15 @@ export class ArenaService {
     this.lastPacketAt = Date.now();
     const address = peekOscAddress(packet);
     if (address && !this.isRelevantAddress(address)) return;
+    if (address?.endsWith("/transport/position")) {
+      const now = Date.now();
+      const last = this.lastPositionPacketAt.get(address) ?? -Infinity;
+      // Arena Output All can send duplicate position frames far faster than a
+      // Stream Deck can display them. Keep the newest useful sample rate and
+      // leave the event loop available for button commands.
+      if (now - last < 40) return;
+      this.lastPositionPacketAt.set(address, now);
+    }
     try {
       const changed = new Set<string>();
       for (const message of decodeOscPacket(packet, (candidate) => this.isRelevantAddress(candidate))) {

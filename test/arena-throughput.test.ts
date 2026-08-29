@@ -54,6 +54,24 @@ describe("ArenaService high-volume input", () => {
     expect(secondUpdates).toBe(1);
   });
 
+  it("rate-limits duplicate position frames before decoding and publishing", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const service = new ArenaService();
+    const arena = internals(service);
+    const rule: MonitoringRule = { mode: "selectedClip", layer: 1, clip: 1 };
+    let updates = 0;
+    arena.subscribers.set("monitor", { rule, followGlobal: false, update: () => { updates += 1; } });
+    arena.rebuildMonitoredRules();
+    const packet = encodeOscMessage("/composition/selectedclip/transport/position", [0.25]);
+
+    for (let index = 0; index < 100; index += 1) arena.handlePacket(packet);
+    expect(updates).toBe(1);
+    vi.setSystemTime(1_040);
+    arena.handlePacket(packet);
+    expect(updates).toBe(2);
+  });
+
   it("does not treat clip 10 wildcard replies as clip 1 disconnecting", () => {
     const service = new ArenaService();
     const arena = internals(service);

@@ -20,6 +20,7 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
   private readonly pendingRenders = new Map<string, NodeJS.Timeout>();
   private readonly latestRenders = new Map<string, PendingRender>();
   private readonly renderInFlight = new Set<string>();
+  private readonly lastImages = new Map<string, string>();
 
   override async onWillAppear(ev: WillAppearEvent<ActionSettings>): Promise<void> {
     await this.attach(ev.action.id, ev.payload.settings, ev.action);
@@ -37,6 +38,7 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
     this.pendingRenders.delete(ev.action.id);
     this.latestRenders.delete(ev.action.id);
     this.lastRenderAt.delete(ev.action.id);
+    this.lastImages.delete(ev.action.id);
   }
 
   override onKeyDown(ev: KeyDownEvent<ActionSettings>): void {
@@ -69,7 +71,7 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
       this.latestRenders.delete(id);
       this.lastRenderAt.set(id, Date.now());
       this.renderInFlight.add(id);
-      void this.render(latest.actionInstance, latest.state, latest.settings)
+      void this.render(id, latest.actionInstance, latest.state, latest.settings)
         .catch(() => undefined)
         .finally(() => {
           this.renderInFlight.delete(id);
@@ -77,14 +79,17 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
           if (queued) this.scheduleRender(id, queued.actionInstance, queued.state, queued.settings);
         });
     };
-    if (elapsed >= 60) render();
-    else this.pendingRenders.set(id, setTimeout(render, 60 - elapsed));
+    if (elapsed >= 100) render();
+    else this.pendingRenders.set(id, setTimeout(render, 100 - elapsed));
   }
 
-  private async render(actionInstance: MonitorActionInstance, state: PlaybackState, settings: ActionSettings): Promise<void> {
+  private async render(id: string, actionInstance: MonitorActionInstance, state: PlaybackState, settings: ActionSettings): Promise<void> {
     if (actionInstance.isKey()) {
       const svg = renderMonitorSvg(settings.displayStyle ?? this.defaultStyle, state, arena.settings, { showClipName: settings.showClipName ?? true });
-      await actionInstance.setImage(`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`);
+      const image = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+      if (this.lastImages.get(id) === image) return;
+      await actionInstance.setImage(image);
+      this.lastImages.set(id, image);
       return;
     }
     const status = state.status === "ok" ? undefined : state.status.replaceAll("-", " ").toUpperCase();

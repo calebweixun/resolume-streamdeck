@@ -23,17 +23,21 @@ abstract class TransportAction extends SingletonAction<ActionSettings> {
 
 @action({ UUID: "com.calebweixun.resolume-monitor.play" })
 export class PlayPauseAction extends SingletonAction<ActionSettings> {
+  private readonly displayedStates = new Map<string, number>();
+
   override async onWillAppear(ev: WillAppearEvent<ActionSettings>): Promise<void> {
     await this.attach(ev);
   }
 
   override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<ActionSettings>): Promise<void> {
     arena.unsubscribe(ev.action.id);
+    this.displayedStates.delete(ev.action.id);
     await this.attach(ev);
   }
 
   override onWillDisappear(ev: WillDisappearEvent<ActionSettings>): void {
     arena.unsubscribe(ev.action.id);
+    this.displayedStates.delete(ev.action.id);
   }
 
   override onKeyDown(ev: KeyDownEvent<ActionSettings>): Promise<void> {
@@ -44,7 +48,11 @@ export class PlayPauseAction extends SingletonAction<ActionSettings> {
   private async attach(ev: WillAppearEvent<ActionSettings> | DidReceiveSettingsEvent<ActionSettings>): Promise<void> {
     const rule = resolveRule(arena.settings, ev.payload.settings);
     await arena.subscribe(ev.action.id, rule, (state) => {
-      if (ev.action.isKey()) void ev.action.setState(state.direction === "paused" ? 0 : 1);
+      if (!ev.action.isKey()) return;
+      const next = state.direction === "paused" ? 0 : 1;
+      if (this.displayedStates.get(ev.action.id) === next) return;
+      this.displayedStates.set(ev.action.id, next);
+      void ev.action.setState(next);
     }, !ev.payload.settings.overrideMonitoring);
   }
 }

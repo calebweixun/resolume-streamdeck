@@ -4,6 +4,9 @@ All notable changes to Resolume Monitor are documented here.
 
 ## v0.2.2 — 2026-08-29
 
+- Isolated command sends from the high-volume OSC reply socket to reduce button latency.
+- Rate-limited duplicate position packets and reduced redundant Stream Deck image/state updates.
+- Stabilized inferred clip duration with spaced sampling and median filtering.
 - Fixed Layer 1–9 monitoring being incorrectly cleared by similarly prefixed clip numbers such as 10–19.
 - Fixed shared monitoring actions using the default layer when Stream Deck started before global settings finished loading.
 - Automatically migrated active subscribers when the saved global monitoring rule became available.
