@@ -14,8 +14,7 @@
     "MinimumVersion": "7.1"
   },
   "Nodejs": {
-    "Version": "24",
-    "Debug": "enabled"
+    "Version": "24"
   },
   "OS": [
     {
@@ -29,10 +28,10 @@
   ],
   "Actions": [
     {
-      "Name": "Time Remaining",
+      "Name": "Clip Monitor",
       "UUID": "com.calebweixun.resolume-monitor.time-remaining",
       "Icon": "imgs/actions/monitor",
-      "Tooltip": "Show the monitored clip and its remaining time.",
+      "Tooltip": "Show clip countdown using a circle, bar, or square.",
       "Controllers": [
         "Keypad",
         "Encoder"
@@ -52,16 +51,17 @@
       ]
     },
     {
-      "Name": "Clip Name",
+      "Name": "Legacy Clip Name",
       "UUID": "com.calebweixun.resolume-monitor.clip-name",
       "Icon": "imgs/actions/monitor",
-      "Tooltip": "Show the monitored clip name.",
+      "Tooltip": "Legacy monitor action retained for existing profiles.",
+      "VisibleInActionsList": false,
       "Controllers": [
         "Keypad",
         "Encoder"
       ],
       "Encoder": {
-        "layout": "$A1",
+        "layout": "$B1",
         "TriggerDescription": {
           "Push": "Refresh",
           "Touch": "Refresh"
@@ -75,10 +75,11 @@
       ]
     },
     {
-      "Name": "Clip Progress",
+      "Name": "Legacy Clip Progress",
       "UUID": "com.calebweixun.resolume-monitor.clip-progress",
       "Icon": "imgs/actions/progress",
-      "Tooltip": "Show playback progress for the monitored clip.",
+      "Tooltip": "Legacy monitor action retained for existing profiles.",
+      "VisibleInActionsList": false,
       "Controllers": [
         "Keypad",
         "Encoder"

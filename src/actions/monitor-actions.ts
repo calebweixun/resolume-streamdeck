@@ -9,13 +9,13 @@ import {
 import { arena } from "../core/arena-service";
 import { formatRemaining } from "../core/time";
 import { resolveRule, type ActionSettings, type PlaybackState } from "../core/types";
-import { renderMonitorSvg, stateColor, type MonitorView } from "../render/monitor-svg";
+import { renderMonitorSvg, stateColor, type CountdownStyle } from "../render/monitor-svg";
 
 type MonitorActionInstance = WillAppearEvent<ActionSettings>["action"];
 type PendingRender = { actionInstance: MonitorActionInstance; state: PlaybackState; settings: ActionSettings };
 
 abstract class MonitorAction extends SingletonAction<ActionSettings> {
-  protected abstract readonly view: MonitorView;
+  protected abstract readonly defaultStyle: CountdownStyle;
   private readonly lastRenderAt = new Map<string, number>();
   private readonly pendingRenders = new Map<string, NodeJS.Timeout>();
   private readonly latestRenders = new Map<string, PendingRender>();
@@ -83,14 +83,14 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
 
   private async render(actionInstance: MonitorActionInstance, state: PlaybackState, settings: ActionSettings): Promise<void> {
     if (actionInstance.isKey()) {
-      const svg = renderMonitorSvg(this.view, state, arena.settings, { showClipName: settings.showClipName ?? true });
+      const svg = renderMonitorSvg(settings.displayStyle ?? this.defaultStyle, state, arena.settings, { showClipName: settings.showClipName ?? true });
       await actionInstance.setImage(`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`);
       return;
     }
     const status = state.status === "ok" ? undefined : state.status.replaceAll("-", " ").toUpperCase();
-    const value = status ?? (this.view === "name" ? state.clipName : formatRemaining(state.remainingSeconds, arena.settings));
+    const value = status ?? formatRemaining(state.remainingSeconds, arena.settings);
     await actionInstance.setFeedback({
-      title: this.view === "time" && settings.showClipName === false ? "Resolume" : state.clipName || "Resolume",
+      title: settings.showClipName === false ? "Resolume" : state.clipName || "Resolume",
       value,
       indicator: { value: Math.round(state.position * 100), bar_fill_c: stateColor(state, arena.settings) }
     });
@@ -98,10 +98,10 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
 }
 
 @action({ UUID: "com.calebweixun.resolume-monitor.time-remaining" })
-export class TimeRemainingAction extends MonitorAction { protected readonly view = "time" as const; }
+export class TimeRemainingAction extends MonitorAction { protected readonly defaultStyle = "circle" as const; }
 
 @action({ UUID: "com.calebweixun.resolume-monitor.clip-name" })
-export class ClipNameAction extends MonitorAction { protected readonly view = "name" as const; }
+export class ClipNameAction extends MonitorAction { protected readonly defaultStyle = "square" as const; }
 
 @action({ UUID: "com.calebweixun.resolume-monitor.clip-progress" })
-export class ClipProgressAction extends MonitorAction { protected readonly view = "progress" as const; }
+export class ClipProgressAction extends MonitorAction { protected readonly defaultStyle = "bar" as const; }

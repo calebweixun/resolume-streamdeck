@@ -7,6 +7,7 @@ All notable changes to Resolume Monitor are documented here.
 - Fixed shared monitoring actions using the default layer when Stream Deck started before global settings finished loading.
 - Automatically migrated active subscribers when the saved global monitoring rule became available.
 - Reduced false No Signal flashes during short gaps between relevant OSC replies.
+- Unified clip-state displays into Clip Monitor with circle, bar, and square countdown styles.
 
 ## v0.2.1 — 2026-08-29
 

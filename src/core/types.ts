@@ -44,6 +44,7 @@ export type ActionSettings = JsonObject & {
   layer?: number;
   clip?: number;
   showClipName?: boolean;
+  displayStyle?: "circle" | "bar" | "square";
 };
 
 export type TriggerSettings = ActionSettings & {

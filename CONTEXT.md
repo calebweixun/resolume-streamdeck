@@ -6,7 +6,7 @@ Use these terms consistently in product copy, documentation, and code discussion
 - **Arena Connection** — the shared OSC host, Arena input port, and plugin reply port.
 - **Monitoring Rule** — selected/specific clip or layer rule used to identify playback state.
 - **Monitored Clip** — the clip resolved by a Monitoring Rule.
-- **Monitor Action** — an action primarily presenting live state: Time Remaining, Clip Name, or Clip Progress.
+- **Clip Monitor** — the unified live Remaining Time action with circle, bar, and square countdown styles.
 - **Remaining Time** — calculated time from the current position to the direction-appropriate playback endpoint.
 - **Signal Status** — trust state of incoming playback information: Connecting, No Signal, No Clip, or Port In Use.
 - **Warning Threshold** — Remaining Time at which presentation becomes yellow.

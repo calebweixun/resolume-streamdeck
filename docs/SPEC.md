@@ -37,29 +37,20 @@ Monitoring Rules support:
 
 A shared Monitoring Rule is configurable globally. Monitor and Clip Transport Actions may override it individually.
 
-Transport position is queried approximately every 110 ms and metadata approximately once per second. Resolume duration values are decoded from their seven-day normalized range. If duration metadata is absent, normalized-position timing provides a fallback estimate.
+Transport position is queried approximately every 60 ms and metadata approximately once per second. Resolume duration values are decoded from their seven-day normalized range. If duration metadata is absent, normalized-position timing provides a fallback estimate.
 
-Monitor Actions render no faster than approximately 10 frames per second.
+Monitor Actions render no faster than approximately 16 frames per second.
 
 ## Monitor Actions
 
-### Time Remaining
+### Clip Monitor
 
-- Circular ring represents the remaining fraction.
-- Numeric Remaining Time is centered in the ring.
+- Circle, bar, and square countdown styles represent the remaining fraction.
+- Numeric Remaining Time is shown in every style.
 - Clip name may be shown or hidden per action.
 - Hours, milliseconds, and the `T−` sign are configurable.
 
-### Clip Name
-
-- Large, left-aligned text.
-- Wraps to three lines and truncates only beyond the third line.
-
-### Clip Progress
-
-- Shows clip name, percentage, progress bar, and Remaining Time.
-
-Pressing any Monitor Action forces an immediate refresh without changing playback.
+Pressing Clip Monitor forces an immediate refresh without changing playback. Legacy Clip Name and Clip Progress UUIDs remain hidden for existing profiles.
 
 ## Status and alert presentation
 

@@ -47,7 +47,7 @@
     const monitorRelated = isMonitor() || isTransport();
     $("monitorSettings").classList.toggle("hidden", !monitorRelated);
     $("displaySettings").classList.toggle("hidden", !isMonitor());
-    $("timeNameRow").classList.toggle("hidden", !actionId.endsWith(".time-remaining"));
+    $("timeNameRow").classList.toggle("hidden", !isMonitor());
     $("triggerSettings").classList.toggle("hidden", !actionId.endsWith(".trigger"));
     $("clearSettings").classList.toggle("hidden", !actionId.endsWith(".clear-composition"));
     $("nudgeSettings").classList.toggle("hidden", !isNudge());
@@ -76,6 +76,8 @@
   function fillActionSettings() {
     $("overrideMonitoring").checked = actionSettings.overrideMonitoring ?? false;
     $("showClipName").checked = actionSettings.showClipName ?? true;
+    const legacyStyle = actionId.endsWith(".clip-progress") ? "bar" : actionId.endsWith(".clip-name") ? "square" : "circle";
+    $("displayStyle").value = actionSettings.displayStyle ?? legacyStyle;
     if (actionSettings.overrideMonitoring) {
       $("monitorMode").value = actionSettings.monitorMode ?? "specificLayer";
       $("layer").value = actionSettings.layer ?? 1;
@@ -140,7 +142,7 @@
       warningSeconds: number("warningSeconds", 30), criticalSeconds: number("criticalSeconds", 10),
       showHours: $("showHours").checked, showMilliseconds: $("showMilliseconds").checked, showSign: $("showSign").checked
     };
-    if (isMonitor() || isTransport()) actionSettings = { ...actionSettings, overrideMonitoring: $("overrideMonitoring").checked, monitorMode: $("monitorMode").value, layer: number("layer", 1), clip: number("clip", 1), showClipName: $("showClipName").checked };
+    if (isMonitor() || isTransport()) actionSettings = { ...actionSettings, overrideMonitoring: $("overrideMonitoring").checked, monitorMode: $("monitorMode").value, layer: number("layer", 1), clip: number("clip", 1), showClipName: $("showClipName").checked, displayStyle: $("displayStyle").value };
     if (actionId.endsWith(".trigger")) actionSettings = { ...actionSettings, triggerMode: $("triggerMode").value, layer: number("triggerLayer", 1), clip: number("triggerClip", 1) };
     if (actionId.endsWith(".clear-composition")) actionSettings = { ...actionSettings, clearTarget: $("clearTarget").value, layer: number("clearLayer", 1) };
     if (isNudge()) actionSettings = { ...actionSettings, step: number("nudgeStep", 0.05), holdDelayMs: number("holdDelayMs", 400), repeatIntervalMs: number("repeatIntervalMs", 120) };

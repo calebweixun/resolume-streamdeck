@@ -1,7 +1,7 @@
 {
   "Name": "Resolume 監看器",
   "Description": "透過 OSC 監看與控制 Resolume 播放。",
-  "com.calebweixun.resolume-monitor.time-remaining": { "Name": "剩餘時間", "Tooltip": "顯示監看片段與剩餘時間。" },
+  "com.calebweixun.resolume-monitor.time-remaining": { "Name": "Clip 倒數監看", "Tooltip": "以圓形、條狀或方塊顯示 Clip 剩餘時間。" },
   "com.calebweixun.resolume-monitor.clip-name": { "Name": "片段名稱", "Tooltip": "顯示監看片段名稱。" },
   "com.calebweixun.resolume-monitor.clip-progress": { "Name": "播放進度", "Tooltip": "顯示監看片段播放進度。" },
   "com.calebweixun.resolume-monitor.play": { "Name": "播放／暫停片段" },

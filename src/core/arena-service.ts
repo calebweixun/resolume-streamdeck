@@ -42,6 +42,7 @@ export class ArenaService {
   private explicitDurations = new Set<string>();
   private pendingNumberQueries = new Map<string, PendingNumberQuery>();
   private nudgeQueues = new Map<string, Promise<void>>();
+  private lastPacketAt = Date.now();
 
   async configure(settings: GlobalSettings): Promise<void> {
     const next = resolveGlobalSettings(settings);
@@ -226,6 +227,7 @@ export class ArenaService {
     if (this.socket) return;
     const socket = dgram.createSocket("udp4");
     this.socket = socket;
+    this.lastPacketAt = Date.now();
     socket.on("message", (packet) => this.handlePacket(packet));
     socket.on("error", (error) => {
       this.markAll("port-in-use", error.message);
@@ -275,6 +277,10 @@ export class ArenaService {
   }
 
   private handlePacket(packet: Buffer): void {
+    // NO SIGNAL represents the OSC connection, not whether this particular
+    // packet happens to contain the monitored clip. Output All may contain
+    // long stretches of unrelated addresses that are intentionally filtered.
+    this.lastPacketAt = Date.now();
     const address = peekOscAddress(packet);
     if (address && !this.isRelevantAddress(address)) return;
     try {
@@ -381,7 +387,7 @@ export class ArenaService {
   private updateStaleStates(): void {
     const now = Date.now();
     for (const [key, state] of this.states) {
-      const age = now - state.lastReplyAt;
+      const age = now - Math.max(state.lastReplyAt, this.lastPacketAt);
       // A busy Arena instance can leave short gaps between relevant replies.
       // Five seconds still detects a lost connection without flashing NO SIGNAL.
       const next = age >= 5000 ? "no-signal" : state.status;

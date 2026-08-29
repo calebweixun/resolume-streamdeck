@@ -7,6 +7,7 @@ type ArenaInternals = {
   subscribers: Map<string, { rule: MonitoringRule; followGlobal: boolean; update: (state: PlaybackState) => void }>;
   monitoredRules: Map<string, MonitoringRule>;
   states: Map<string, PlaybackState>;
+  lastPacketAt: number;
   rebuildMonitoredRules(): void;
   handlePacket(packet: Buffer): void;
   updateStaleStates(): void;
@@ -65,12 +66,35 @@ describe("ArenaService high-volume input", () => {
     };
     arena.subscribers.set("monitor", { rule, followGlobal: false, update: () => undefined });
     arena.states.set("selectedClip:1:1", state);
+    arena.lastPacketAt = 0;
 
     arena.updateStaleStates();
     expect(state.status).toBe("ok");
     vi.setSystemTime(5_000);
     arena.updateStaleStates();
     expect(state.status).toBe("no-signal");
+  });
+
+  it("uses incoming OSC traffic as the connection heartbeat", () => {
+    vi.useFakeTimers();
+    const service = new ArenaService();
+    const arena = internals(service);
+    const rule: MonitoringRule = { mode: "selectedClip", layer: 1, clip: 1 };
+    const state: PlaybackState = {
+      status: "ok", clipName: "Demo", durationSeconds: 10, position: 0.5,
+      direction: "forward", remainingSeconds: 5, activePath: "", lastReplyAt: 0
+    };
+    arena.subscribers.set("monitor", { rule, followGlobal: false, update: () => undefined });
+    arena.rebuildMonitoredRules();
+    arena.states.set("selectedClip:1:1", state);
+    arena.lastPacketAt = 0;
+
+    vi.setSystemTime(4_500);
+    arena.handlePacket(encodeOscMessage("/composition/video/opacity", [0.5]));
+    vi.setSystemTime(8_000);
+    arena.updateStaleStates();
+
+    expect(state.status).toBe("ok");
   });
 
   it("moves shared subscribers to global settings loaded after startup", async () => {

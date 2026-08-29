@@ -17,19 +17,20 @@ const state: PlaybackState = {
 
 describe("monitor SVG layouts", () => {
   it("renders a circular countdown and can hide the clip name", () => {
-    const hidden = renderMonitorSvg("time", state, settings, { showClipName: false });
+    const hidden = renderMonitorSvg("circle", state, settings, { showClipName: false });
     expect(hidden).toContain("stroke-dasharray");
     expect(hidden).not.toContain("A very long");
 
-    const visible = renderMonitorSvg("time", state, settings, { showClipName: true });
+    const visible = renderMonitorSvg("circle", state, settings, { showClipName: true });
     expect(visible).toContain("A very long");
   });
 
-  it("left-aligns and wraps the large clip-name layout", () => {
-    const svg = renderMonitorSvg("name", state, settings);
-    expect(svg).toContain('x="17"');
-    expect(svg).toContain('text-anchor="start"');
-    expect(svg).toContain('font-size="21"');
-    expect((svg.match(/font-size="21"/g) ?? []).length).toBe(3);
+  it("renders bar and square countdown styles", () => {
+    const bar = renderMonitorSvg("bar", state, settings);
+    expect(bar).toContain('width="58.0"');
+
+    const square = renderMonitorSvg("square", state, settings);
+    expect(square).toContain('pathLength="100"');
+    expect(square).toContain('stroke-dasharray="50.0 100"');
   });
 });

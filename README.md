@@ -6,8 +6,7 @@ Monitor and control Resolume Arena or Avenue over OSC from Elgato Stream Deck.
 
 ## Features
 
-- Circular remaining-time display with warning and critical states
-- Large, wrapped clip-name display and animated progress display
+- Unified Clip Monitor with circle, bar, and square countdown styles
 - Selected, specific-clip, selected-layer, and specific-layer monitoring
 - Play/pause toggle, restart, selected-preview-clip trigger, and direct clip trigger
 - Clear Composition and previous/next Column controls
@@ -49,13 +48,13 @@ The plugin actively queries required values, so Resolume's **Output All OSC Mess
 
 | Group | Actions |
 | --- | --- |
-| Monitor | Time Remaining, Clip Name, Clip Progress |
+| Monitor | Clip Monitor with selectable circle, bar, or square countdown |
 | Transport | Play / Pause Clip, Restart Clip, Trigger Clip |
 | Composition | Clear Composition, Previous Column, Next Column |
 | Adjustment | Clip Speed +/−, Clip Volume +/− |
 | Advanced | Custom OSC |
 
-Time Remaining can hide the clip name. Clip Speed and Clip Volume read the current normalized Arena value before applying each increment or decrement, including while held.
+Clip Monitor can hide the clip name. Clip Speed and Clip Volume read the current normalized Arena value before applying each increment or decrement, including while held.
 
 ## Development
 
