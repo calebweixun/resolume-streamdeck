@@ -1,4 +1,4 @@
-import streamDeck, {
+import {
   action,
   type DidReceiveSettingsEvent,
   type KeyDownEvent,
@@ -11,10 +11,15 @@ import { formatRemaining } from "../core/time";
 import { resolveRule, type ActionSettings, type PlaybackState } from "../core/types";
 import { renderMonitorSvg, stateColor, type MonitorView } from "../render/monitor-svg";
 
+type MonitorActionInstance = WillAppearEvent<ActionSettings>["action"];
+type PendingRender = { actionInstance: MonitorActionInstance; state: PlaybackState; settings: ActionSettings };
+
 abstract class MonitorAction extends SingletonAction<ActionSettings> {
   protected abstract readonly view: MonitorView;
   private readonly lastRenderAt = new Map<string, number>();
   private readonly pendingRenders = new Map<string, NodeJS.Timeout>();
+  private readonly latestRenders = new Map<string, PendingRender>();
+  private readonly renderInFlight = new Set<string>();
 
   override async onWillAppear(ev: WillAppearEvent<ActionSettings>): Promise<void> {
     await this.attach(ev.action.id, ev.payload.settings, ev.action);
@@ -30,6 +35,7 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
     const pending = this.pendingRenders.get(ev.action.id);
     if (pending) clearTimeout(pending);
     this.pendingRenders.delete(ev.action.id);
+    this.latestRenders.delete(ev.action.id);
     this.lastRenderAt.delete(ev.action.id);
   }
 
@@ -37,33 +43,43 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
     arena.refresh(resolveRule(arena.settings, ev.payload.settings));
   }
 
-  private async attach(id: string, settings: ActionSettings, actionInstance: WillAppearEvent<ActionSettings>["action"]): Promise<void> {
+  private async attach(id: string, settings: ActionSettings, actionInstance: MonitorActionInstance): Promise<void> {
     const rule = resolveRule(arena.settings, settings);
+    // The title never changes; clearing it once avoids a second SDK command on
+    // every progress frame.
+    if (actionInstance.isKey()) await actionInstance.setTitle("");
     await arena.subscribe(id, rule, (state) => this.scheduleRender(id, actionInstance, state, settings));
   }
 
-  private scheduleRender(id: string, actionInstance: WillAppearEvent<ActionSettings>["action"], state: PlaybackState, settings: ActionSettings): void {
+  private scheduleRender(id: string, actionInstance: MonitorActionInstance, state: PlaybackState, settings: ActionSettings): void {
+    this.latestRenders.set(id, { actionInstance, state, settings });
+    if (this.renderInFlight.has(id)) return;
     const elapsed = Date.now() - (this.lastRenderAt.get(id) ?? 0);
     const existing = this.pendingRenders.get(id);
     if (existing) clearTimeout(existing);
     const render = () => {
       this.pendingRenders.delete(id);
+      const latest = this.latestRenders.get(id);
+      if (!latest) return;
+      this.latestRenders.delete(id);
       this.lastRenderAt.set(id, Date.now());
-      void this.render(actionInstance, state, settings).catch((error) => {
-        streamDeck.logger.error(`Monitor render failed: ${error instanceof Error ? error.message : String(error)}`);
-      });
+      this.renderInFlight.add(id);
+      void this.render(latest.actionInstance, latest.state, latest.settings)
+        .catch(() => undefined)
+        .finally(() => {
+          this.renderInFlight.delete(id);
+          const queued = this.latestRenders.get(id);
+          if (queued) this.scheduleRender(id, queued.actionInstance, queued.state, queued.settings);
+        });
     };
     if (elapsed >= 60) render();
     else this.pendingRenders.set(id, setTimeout(render, 60 - elapsed));
   }
 
-  private async render(actionInstance: WillAppearEvent<ActionSettings>["action"], state: PlaybackState, settings: ActionSettings): Promise<void> {
+  private async render(actionInstance: MonitorActionInstance, state: PlaybackState, settings: ActionSettings): Promise<void> {
     if (actionInstance.isKey()) {
       const svg = renderMonitorSvg(this.view, state, arena.settings, { showClipName: settings.showClipName ?? true });
       await actionInstance.setImage(`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`);
-      // The title is a separate Stream Deck overlay. Clear it so it does not
-      // cover the SVG's deliberately positioned name, time and progress text.
-      await actionInstance.setTitle("");
       return;
     }
     const status = state.status === "ok" ? undefined : state.status.replaceAll("-", " ").toUpperCase();

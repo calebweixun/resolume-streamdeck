@@ -43,6 +43,14 @@ function readString(buffer: Buffer, offset: number): [string, number] {
   return [buffer.toString("utf8", offset, end), offset + paddedLength(end - offset + 1)];
 }
 
+/** Reads only the OSC address so high-volume unrelated messages can be dropped cheaply. */
+export function peekOscAddress(buffer: Buffer): string | undefined {
+  if (buffer.length === 0 || buffer[0] !== 47) return undefined;
+  const end = buffer.indexOf(0);
+  if (end <= 1) return undefined;
+  return buffer.toString("utf8", 0, end);
+}
+
 function decodeMessage(buffer: Buffer): OscMessage {
   let offset = 0;
   const [address, afterAddress] = readString(buffer, offset);
@@ -64,16 +72,16 @@ function decodeMessage(buffer: Buffer): OscMessage {
   return { address, args };
 }
 
-export function decodeOscPacket(buffer: Buffer): OscMessage[] {
+export function decodeOscPacket(buffer: Buffer, acceptAddress?: (address: string) => boolean): OscMessage[] {
   const [header] = readString(buffer, 0);
-  if (header !== "#bundle") return [decodeMessage(buffer)];
+  if (header !== "#bundle") return acceptAddress && !acceptAddress(header) ? [] : [decodeMessage(buffer)];
   const messages: OscMessage[] = [];
   let offset = 16;
   while (offset + 4 <= buffer.length) {
     const size = buffer.readInt32BE(offset);
     offset += 4;
     if (size <= 0 || offset + size > buffer.length) throw new Error("Invalid OSC bundle element");
-    messages.push(...decodeOscPacket(buffer.subarray(offset, offset + size)));
+    messages.push(...decodeOscPacket(buffer.subarray(offset, offset + size), acceptAddress));
     offset += size;
   }
   return messages;

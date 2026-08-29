@@ -1,7 +1,6 @@
 import dgram from "node:dgram";
-import streamDeck from "@elgato/streamdeck";
 import { DurationEstimator } from "./duration-estimator";
-import { decodeOscPacket, encodeOscMessage, type OscMessage, type OscValue } from "./osc-codec";
+import { decodeOscPacket, encodeOscMessage, peekOscAddress, type OscMessage, type OscValue } from "./osc-codec";
 import { calculateRemaining, decodeDurationSeconds } from "./time";
 import { stabilizePosition } from "./position";
 import {
@@ -36,13 +35,13 @@ export class ArenaService {
   private staleTimer?: NodeJS.Timeout;
   private metadataTick = 0;
   private subscribers = new Map<string, Subscriber>();
+  private monitoredRules = new Map<string, MonitoringRule>();
   private states = new Map<string, PlaybackState>();
   private lastDirections = new Map<string, PlaybackState["direction"]>();
   private durationEstimator = new DurationEstimator();
   private explicitDurations = new Set<string>();
   private pendingNumberQueries = new Map<string, PendingNumberQuery>();
   private nudgeQueues = new Map<string, Promise<void>>();
-  private hasLoggedFirstReply = false;
 
   async configure(settings: GlobalSettings): Promise<void> {
     const next = resolveGlobalSettings(settings);
@@ -58,6 +57,7 @@ export class ArenaService {
 
   async subscribe(id: string, rule: MonitoringRule, update: (state: PlaybackState) => void): Promise<void> {
     this.subscribers.set(id, { rule, update });
+    this.rebuildMonitoredRules();
     const key = ruleKey(rule);
     const state = this.states.get(key) ?? emptyState();
     this.states.set(key, state);
@@ -68,11 +68,13 @@ export class ArenaService {
 
   unsubscribe(id: string): void {
     this.subscribers.delete(id);
+    this.rebuildMonitoredRules();
     if (this.subscribers.size === 0) void this.stopSocket();
   }
 
   async shutdown(): Promise<void> {
     this.subscribers.clear();
+    this.monitoredRules.clear();
     await this.stopSocket();
   }
 
@@ -207,7 +209,6 @@ export class ArenaService {
     this.socket = socket;
     socket.on("message", (packet) => this.handlePacket(packet));
     socket.on("error", (error) => {
-      streamDeck.logger.error(`OSC listener error: ${error.message}`);
       this.markAll("port-in-use", error.message);
     });
     try {
@@ -238,31 +239,28 @@ export class ArenaService {
   }
 
   private poll(): void {
-    const rules = new Map<string, MonitoringRule>();
-    for (const { rule } of this.subscribers.values()) rules.set(ruleKey(rule), rule);
     this.metadataTick = (this.metadataTick + 1) % 9;
-    for (const rule of rules.values()) this.queryRule(rule, this.metadataTick === 0);
+    for (const rule of this.monitoredRules.values()) this.queryRule(rule, this.metadataTick === 0);
   }
 
   private queryRule(rule: MonitoringRule, metadata: boolean): void {
     const path = this.activePath(rule);
-    void this.send(`${path}/transport/position`, ["?"]).catch((error) => this.logSendError(error));
+    void this.send(`${path}/transport/position`, ["?"]).catch(() => undefined);
     if (!metadata) return;
-    void this.send(`${path}/name`, ["?"]).catch((error) => this.logSendError(error));
-    void this.send(`${path}/transport/position/behaviour/duration`, ["?"]).catch((error) => this.logSendError(error));
-    void this.send(`${path}/transport/position/behaviour/playdirection`, ["?"]).catch((error) => this.logSendError(error));
+    void this.send(`${path}/name`, ["?"]).catch(() => undefined);
+    void this.send(`${path}/transport/position/behaviour/duration`, ["?"]).catch(() => undefined);
+    void this.send(`${path}/transport/position/behaviour/playdirection`, ["?"]).catch(() => undefined);
     if (isLayerRule(rule)) {
-      void this.send(`${basePathForRule(rule)}/clips/*/connected`, ["?"]).catch((error) => this.logSendError(error));
+      void this.send(`${basePathForRule(rule)}/clips/*/connected`, ["?"]).catch(() => undefined);
     }
   }
 
-  private logSendError(error: unknown): void {
-    streamDeck.logger.warn(`OSC send failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
-
   private handlePacket(packet: Buffer): void {
+    const address = peekOscAddress(packet);
+    if (address && !this.isRelevantAddress(address)) return;
     try {
-      for (const message of decodeOscPacket(packet)) {
+      const changed = new Set<string>();
+      for (const message of decodeOscPacket(packet, (candidate) => this.isRelevantAddress(candidate))) {
         const pending = this.pendingNumberQueries.get(message.address);
         const queriedValue = message.args[0];
         if (pending && typeof queriedValue === "number") {
@@ -270,25 +268,19 @@ export class ArenaService {
           this.pendingNumberQueries.delete(message.address);
           pending.resolve(queriedValue);
         }
-        if (!this.hasLoggedFirstReply) {
-          this.hasLoggedFirstReply = true;
-          streamDeck.logger.info(`OSC replies active; first address: ${message.address}`);
-        }
-        this.handleMessage(message);
+        this.handleMessage(message, changed);
       }
-    } catch (error) {
-      streamDeck.logger.warn(`Ignored invalid OSC packet: ${error instanceof Error ? error.message : String(error)}`);
-    }
+      for (const key of changed) this.publish(key);
+    } catch { /* Ignore malformed or unsupported OSC packets without logging. */ }
   }
 
-  private handleMessage(message: OscMessage): void {
+  private handleMessage(message: OscMessage, changed: Set<string>): void {
     const now = Date.now();
-    for (const subscriber of this.subscribers.values()) {
-      const key = ruleKey(subscriber.rule);
-      const base = basePathForRule(subscriber.rule);
+    for (const [key, rule] of this.monitoredRules) {
+      const base = basePathForRule(rule);
       const state = this.states.get(key) ?? emptyState();
 
-      if (isLayerRule(subscriber.rule) && message.address.startsWith(`${base}/clips/`) && message.address.endsWith("/connected")) {
+      if (isLayerRule(rule) && message.address.startsWith(`${base}/clips/`) && message.address.endsWith("/connected")) {
         const code = Number(message.args[0]);
         if (code === 3 || code === 4 || message.args[0] === true) {
           const activePath = message.address.slice(0, -"/connected".length);
@@ -307,12 +299,12 @@ export class ArenaService {
           state.status = "no-clip";
           state.lastReplyAt = now;
           this.states.set(key, state);
-          this.publish(key);
+          changed.add(key);
         }
       }
 
-      const expected = state.activePath || (isLayerRule(subscriber.rule) ? `${base}/clips/playing` : base);
-      if (!message.address.startsWith(expected)) continue;
+      const expected = state.activePath || (isLayerRule(rule) ? `${base}/clips/playing` : base);
+      if (!this.isPathOrChild(message.address, expected)) continue;
 
       const first = message.args[0];
       state.lastReplyAt = now;
@@ -342,8 +334,29 @@ export class ArenaService {
       }
       state.remainingSeconds = calculateRemaining(state.durationSeconds, state.position, state.direction);
       this.states.set(key, state);
-      this.publish(key);
+      changed.add(key);
     }
+  }
+
+  private rebuildMonitoredRules(): void {
+    this.monitoredRules.clear();
+    for (const { rule } of this.subscribers.values()) this.monitoredRules.set(ruleKey(rule), rule);
+  }
+
+  private isRelevantAddress(address: string): boolean {
+    if (this.pendingNumberQueries.has(address)) return true;
+    for (const [key, rule] of this.monitoredRules) {
+      const base = basePathForRule(rule);
+      const state = this.states.get(key);
+      const expected = state?.activePath || (isLayerRule(rule) ? `${base}/clips/playing` : base);
+      if (this.isPathOrChild(address, expected)) return true;
+      if (isLayerRule(rule) && address.startsWith(`${base}/clips/`) && address.endsWith("/connected")) return true;
+    }
+    return false;
+  }
+
+  private isPathOrChild(address: string, path: string): boolean {
+    return address === path || address.startsWith(`${path}/`);
   }
 
   private updateStaleStates(): void {

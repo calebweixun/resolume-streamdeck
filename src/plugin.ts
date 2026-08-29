@@ -4,7 +4,8 @@ import { ClearCompositionAction, CustomOscAction, NextColumnAction, PlayPauseAct
 import { arena } from "./core/arena-service";
 import type { GlobalSettings } from "./core/types";
 
-streamDeck.logger.setLevel("info");
+// Keep production logging at errors only; high-volume OSC paths do not log.
+streamDeck.logger.setLevel("error");
 
 streamDeck.settings.onDidReceiveGlobalSettings<GlobalSettings>((event) => {
   void arena.configure(event.settings);

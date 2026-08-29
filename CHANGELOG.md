@@ -2,6 +2,13 @@
 
 All notable changes to Resolume Monitor are documented here.
 
+## v0.2.1 — 2026-08-29
+
+- Reduced command latency under high-volume OSC output by filtering unrelated messages before payload decoding.
+- Deduplicated monitoring-rule processing and coalesced state publishing per OSC packet.
+- Prevented Stream Deck image-update backlogs by keeping only the latest pending frame.
+- Removed logging from OSC and rendering hot paths.
+
 ## v0.2.0 — 2026-08-29
 
 - Added configurable clearing for the entire composition or a specific layer.
