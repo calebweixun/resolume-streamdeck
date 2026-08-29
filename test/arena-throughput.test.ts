@@ -1,12 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ArenaService } from "../src/core/arena-service";
 import { encodeOscMessage } from "../src/core/osc-codec";
 import type { MonitoringRule, PlaybackState } from "../src/core/types";
 
 type ArenaInternals = {
-  subscribers: Map<string, { rule: MonitoringRule; update: (state: PlaybackState) => void }>;
+  subscribers: Map<string, { rule: MonitoringRule; followGlobal: boolean; update: (state: PlaybackState) => void }>;
+  monitoredRules: Map<string, MonitoringRule>;
+  states: Map<string, PlaybackState>;
   rebuildMonitoredRules(): void;
   handlePacket(packet: Buffer): void;
+  updateStaleStates(): void;
 };
 
 function internals(service: ArenaService): ArenaInternals {
@@ -14,12 +17,15 @@ function internals(service: ArenaService): ArenaInternals {
 }
 
 describe("ArenaService high-volume input", () => {
+  afterEach(() => vi.useRealTimers());
+
   it("drops unrelated Output All messages before state processing", () => {
     const service = new ArenaService();
     const arena = internals(service);
     let updates = 0;
     arena.subscribers.set("monitor", {
       rule: { mode: "selectedClip", layer: 1, clip: 1 },
+      followGlobal: false,
       update: () => { updates += 1; }
     });
     arena.rebuildMonitoredRules();
@@ -37,13 +43,55 @@ describe("ArenaService high-volume input", () => {
     const rule: MonitoringRule = { mode: "selectedClip", layer: 1, clip: 1 };
     let firstUpdates = 0;
     let secondUpdates = 0;
-    arena.subscribers.set("first", { rule, update: () => { firstUpdates += 1; } });
-    arena.subscribers.set("second", { rule, update: () => { secondUpdates += 1; } });
+    arena.subscribers.set("first", { rule, followGlobal: false, update: () => { firstUpdates += 1; } });
+    arena.subscribers.set("second", { rule, followGlobal: false, update: () => { secondUpdates += 1; } });
     arena.rebuildMonitoredRules();
 
     arena.handlePacket(encodeOscMessage("/composition/selectedclip/transport/position", [0.25]));
 
     expect(firstUpdates).toBe(1);
     expect(secondUpdates).toBe(1);
+  });
+
+  it("does not flash no-signal during a short reply gap", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(4_000);
+    const service = new ArenaService();
+    const arena = internals(service);
+    const rule: MonitoringRule = { mode: "selectedClip", layer: 1, clip: 1 };
+    const state: PlaybackState = {
+      status: "ok", clipName: "Demo", durationSeconds: 10, position: 0.5,
+      direction: "forward", remainingSeconds: 5, activePath: "", lastReplyAt: 0
+    };
+    arena.subscribers.set("monitor", { rule, followGlobal: false, update: () => undefined });
+    arena.states.set("selectedClip:1:1", state);
+
+    arena.updateStaleStates();
+    expect(state.status).toBe("ok");
+    vi.setSystemTime(5_000);
+    arena.updateStaleStates();
+    expect(state.status).toBe("no-signal");
+  });
+
+  it("moves shared subscribers to global settings loaded after startup", async () => {
+    const service = new ArenaService();
+    const arena = internals(service);
+    const defaultRule: MonitoringRule = { mode: "specificLayer", layer: 1, clip: 1 };
+    arena.subscribers.set("monitor", {
+      rule: defaultRule,
+      followGlobal: true,
+      update: () => undefined
+    });
+    arena.rebuildMonitoredRules();
+
+    await service.configure({ replyPort: 0, monitorMode: "specificLayer", layer: 4, clip: 1 });
+
+    expect(arena.monitoredRules.has("specificLayer:4:1")).toBe(true);
+    expect(arena.monitoredRules.has("specificLayer:1:1")).toBe(false);
+
+    await service.subscribe("late-monitor", defaultRule, () => undefined, true);
+    expect(arena.monitoredRules.has("specificLayer:4:1")).toBe(true);
+    expect(arena.subscribers.get("late-monitor")?.rule.layer).toBe(4);
+    await service.shutdown();
   });
 });

@@ -14,7 +14,7 @@ import {
   type ResolvedSettings
 } from "./types";
 
-type Subscriber = { rule: MonitoringRule; update: (state: PlaybackState) => void };
+type Subscriber = { rule: MonitoringRule; followGlobal: boolean; update: (state: PlaybackState) => void };
 type PendingNumberQuery = { resolve: (value: number) => void; reject: (error: Error) => void; timeout: NodeJS.Timeout };
 
 const emptyState = (): PlaybackState => ({
@@ -46,24 +46,43 @@ export class ArenaService {
   async configure(settings: GlobalSettings): Promise<void> {
     const next = resolveGlobalSettings(settings);
     const needsRebind = next.replyPort !== this.config.replyPort;
+    const globalRuleChanged = ruleKey(next.monitorRule) !== ruleKey(this.config.monitorRule);
     this.config = next;
+    let migratedGlobalSubscribers = false;
+    if (globalRuleChanged) {
+      for (const subscriber of this.subscribers.values()) {
+        if (!subscriber.followGlobal) continue;
+        subscriber.rule = next.monitorRule;
+        migratedGlobalSubscribers = true;
+      }
+      if (migratedGlobalSubscribers) this.rebuildMonitoredRules();
+    }
     if (needsRebind && this.socket) await this.stopSocket();
     if (this.subscribers.size > 0) await this.ensureRunning();
+    if (migratedGlobalSubscribers) this.refresh(next.monitorRule);
   }
 
   get settings(): ResolvedSettings {
     return this.config;
   }
 
-  async subscribe(id: string, rule: MonitoringRule, update: (state: PlaybackState) => void): Promise<void> {
-    this.subscribers.set(id, { rule, update });
+  async subscribe(
+    id: string,
+    rule: MonitoringRule,
+    update: (state: PlaybackState) => void,
+    followGlobal = false
+  ): Promise<void> {
+    // The caller may have resolved its rule before global settings finished
+    // loading. Shared subscribers must always use the service's current rule.
+    const effectiveRule = followGlobal ? this.config.monitorRule : rule;
+    this.subscribers.set(id, { rule: effectiveRule, followGlobal, update });
     this.rebuildMonitoredRules();
-    const key = ruleKey(rule);
+    const key = ruleKey(effectiveRule);
     const state = this.states.get(key) ?? emptyState();
     this.states.set(key, state);
     update(state);
     await this.ensureRunning();
-    this.refresh(rule);
+    this.refresh(effectiveRule);
   }
 
   unsubscribe(id: string): void {
@@ -363,7 +382,9 @@ export class ArenaService {
     const now = Date.now();
     for (const [key, state] of this.states) {
       const age = now - state.lastReplyAt;
-      const next = age >= 2000 ? "no-signal" : state.status;
+      // A busy Arena instance can leave short gaps between relevant replies.
+      // Five seconds still detects a lost connection without flashing NO SIGNAL.
+      const next = age >= 5000 ? "no-signal" : state.status;
       if (next !== state.status && state.status !== "port-in-use") {
         state.status = next;
         this.publish(key);

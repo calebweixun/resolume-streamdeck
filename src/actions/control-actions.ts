@@ -45,7 +45,7 @@ export class PlayPauseAction extends SingletonAction<ActionSettings> {
     const rule = resolveRule(arena.settings, ev.payload.settings);
     await arena.subscribe(ev.action.id, rule, (state) => {
       if (ev.action.isKey()) void ev.action.setState(state.direction === "paused" ? 0 : 1);
-    });
+    }, !ev.payload.settings.overrideMonitoring);
   }
 }
 

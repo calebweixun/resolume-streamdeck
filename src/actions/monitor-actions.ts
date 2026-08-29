@@ -48,7 +48,12 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
     // The title never changes; clearing it once avoids a second SDK command on
     // every progress frame.
     if (actionInstance.isKey()) await actionInstance.setTitle("");
-    await arena.subscribe(id, rule, (state) => this.scheduleRender(id, actionInstance, state, settings));
+    await arena.subscribe(
+      id,
+      rule,
+      (state) => this.scheduleRender(id, actionInstance, state, settings),
+      !settings.overrideMonitoring
+    );
   }
 
   private scheduleRender(id: string, actionInstance: MonitorActionInstance, state: PlaybackState, settings: ActionSettings): void {

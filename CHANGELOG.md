@@ -2,6 +2,12 @@
 
 All notable changes to Resolume Monitor are documented here.
 
+## v0.2.2 — 2026-08-29
+
+- Fixed shared monitoring actions using the default layer when Stream Deck started before global settings finished loading.
+- Automatically migrated active subscribers when the saved global monitoring rule became available.
+- Reduced false No Signal flashes during short gaps between relevant OSC replies.
+
 ## v0.2.1 — 2026-08-29
 
 - Reduced command latency under high-volume OSC output by filtering unrelated messages before payload decoding.
