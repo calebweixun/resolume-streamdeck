@@ -49,6 +49,7 @@
     $("displaySettings").classList.toggle("hidden", !isMonitor());
     $("timeNameRow").classList.toggle("hidden", !actionId.endsWith(".time-remaining"));
     $("triggerSettings").classList.toggle("hidden", !actionId.endsWith(".trigger"));
+    $("clearSettings").classList.toggle("hidden", !actionId.endsWith(".clear-composition"));
     $("nudgeSettings").classList.toggle("hidden", !isNudge());
     $("customSettings").classList.toggle("hidden", !actionId.endsWith(".custom-osc"));
     $("overrideRow").classList.toggle("hidden", !monitorRelated);
@@ -83,6 +84,8 @@
     $("triggerLayer").value = actionSettings.layer ?? 1;
     $("triggerClip").value = actionSettings.clip ?? 1;
     $("triggerMode").value = actionSettings.triggerMode ?? "selectedClip";
+    $("clearTarget").value = actionSettings.clearTarget ?? "composition";
+    $("clearLayer").value = actionSettings.layer ?? 1;
     $("nudgeStep").value = actionSettings.step ?? 0.05;
     $("holdDelayMs").value = actionSettings.holdDelayMs ?? 400;
     $("repeatIntervalMs").value = actionSettings.repeatIntervalMs ?? 120;
@@ -99,6 +102,7 @@
     document.querySelectorAll(".layerField").forEach((element) => element.classList.toggle("hidden", !/specific/.test(mode)));
     document.querySelectorAll(".clipField").forEach((element) => element.classList.toggle("hidden", mode !== "specificClip"));
     document.querySelectorAll(".triggerSpecific").forEach((element) => element.classList.toggle("hidden", $("triggerMode").value !== "specificClip"));
+    $("clearLayerRow").classList.toggle("hidden", $("clearTarget").value !== "layer");
   }
 
   function validateArguments(value) {
@@ -109,7 +113,7 @@
   function validate() {
     if (!$("host").value.trim() || /\s/.test($("host").value)) return text.invalidHost;
     if (![number("arenaPort", 0), number("replyPort", 0)].every((port) => Number.isInteger(port) && port >= 1 && port <= 65535)) return text.invalidPort;
-    if ([number("layer", 0), number("clip", 0), number("triggerLayer", 0), number("triggerClip", 0)].some((value) => !Number.isInteger(value) || value < 1)) return text.invalidIndex;
+    if ([number("layer", 0), number("clip", 0), number("triggerLayer", 0), number("triggerClip", 0), number("clearLayer", 0)].some((value) => !Number.isInteger(value) || value < 1)) return text.invalidIndex;
     if (isNudge() && (number("nudgeStep", 0) <= 0 || number("nudgeStep", 0) > 1)) return text.invalidStep;
     if (isNudge() && (number("holdDelayMs", 0) < 100 || number("holdDelayMs", 0) > 2000 || number("repeatIntervalMs", 0) < 50 || number("repeatIntervalMs", 0) > 1000)) return text.invalidRepeat;
     if (number("criticalSeconds", 0) > number("warningSeconds", 0)) return text.invalidThreshold;
@@ -121,6 +125,7 @@
 
   $("monitorMode").addEventListener("change", updateTargetFields);
   $("triggerMode").addEventListener("change", updateTargetFields);
+  $("clearTarget").addEventListener("change", updateTargetFields);
   $("save").addEventListener("click", () => {
     const error = validate();
     $("error").style.display = error ? "block" : "none";
@@ -137,6 +142,7 @@
     };
     if (isMonitor() || isTransport()) actionSettings = { ...actionSettings, overrideMonitoring: $("overrideMonitoring").checked, monitorMode: $("monitorMode").value, layer: number("layer", 1), clip: number("clip", 1), showClipName: $("showClipName").checked };
     if (actionId.endsWith(".trigger")) actionSettings = { ...actionSettings, triggerMode: $("triggerMode").value, layer: number("triggerLayer", 1), clip: number("triggerClip", 1) };
+    if (actionId.endsWith(".clear-composition")) actionSettings = { ...actionSettings, clearTarget: $("clearTarget").value, layer: number("clearLayer", 1) };
     if (isNudge()) actionSettings = { ...actionSettings, step: number("nudgeStep", 0.05), holdDelayMs: number("holdDelayMs", 400), repeatIntervalMs: number("repeatIntervalMs", 120) };
     if (actionId.endsWith(".custom-osc")) actionSettings = { ...actionSettings, pressAddress: $("pressAddress").value, pressArguments: $("pressArguments").value, releaseEnabled: $("releaseEnabled").checked, releaseAddress: $("releaseAddress").value, releaseArguments: $("releaseArguments").value };
     send({ event: "setGlobalSettings", context, payload: globalSettings });

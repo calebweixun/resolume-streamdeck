@@ -52,6 +52,11 @@ export type TriggerSettings = ActionSettings & {
   clip?: number;
 };
 
+export type ClearSettings = JsonObject & {
+  clearTarget?: "composition" | "layer";
+  layer?: number;
+};
+
 export type NudgeSettings = JsonObject & {
   step?: number;
   holdDelayMs?: number;

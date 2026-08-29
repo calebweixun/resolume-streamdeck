@@ -54,6 +54,12 @@
     <label class="triggerSpecific"><span data-i18n="clip">Clip</span><input id="triggerClip" type="number" min="1" value="1"></label>
   </fieldset>
 
+  <fieldset id="clearSettings" class="hidden">
+    <legend>Clear／清除</legend>
+    <label><span>Clear target／清除目標</span><select id="clearTarget"><option value="composition">Composition</option><option value="layer">Layer</option></select></label>
+    <label id="clearLayerRow"><span data-i18n="layer">Layer</span><input id="clearLayer" type="number" min="1" value="1"></label>
+  </fieldset>
+
   <fieldset id="nudgeSettings" class="hidden">
     <legend data-i18n="adjustment">Adjustment</legend>
     <label><span data-i18n="step">Step per press</span><input id="nudgeStep" type="number" min="0.001" max="1" step="0.001" value="0.05"></label>

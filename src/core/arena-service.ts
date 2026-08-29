@@ -3,6 +3,7 @@ import streamDeck from "@elgato/streamdeck";
 import { DurationEstimator } from "./duration-estimator";
 import { decodeOscPacket, encodeOscMessage, type OscMessage, type OscValue } from "./osc-codec";
 import { calculateRemaining, decodeDurationSeconds } from "./time";
+import { stabilizePosition } from "./position";
 import {
   basePathForRule,
   isLayerRule,
@@ -139,6 +140,12 @@ export class ArenaService {
     await this.send("/composition/disconnectall", [1]);
   }
 
+  async clearLayer(layer: number): Promise<void> {
+    const address = `/composition/layers/${Math.max(1, Math.trunc(layer))}/clear`;
+    await this.send(address, [1]);
+    await this.send(address, [0]);
+  }
+
   async connectPreviousColumn(): Promise<void> {
     await this.send("/composition/connectprevcolumn", [1]);
   }
@@ -215,7 +222,8 @@ export class ArenaService {
       this.markAll("port-in-use", error instanceof Error ? error.message : String(error));
       return;
     }
-    this.pollTimer = setInterval(() => this.poll(), 110);
+    // About 16 fps avoids visibly stair-stepped progress on Stream Deck keys.
+    this.pollTimer = setInterval(() => this.poll(), 60);
     this.staleTimer = setInterval(() => this.updateStaleStates(), 250);
   }
 
@@ -322,7 +330,7 @@ export class ArenaService {
         this.explicitDurations.add(key);
       }
       else if (message.address.endsWith("/position") && typeof first === "number") {
-        state.position = first;
+        state.position = stabilizePosition(state.position, first, state.direction);
         if (!this.explicitDurations.has(key)) {
           const estimate = this.durationEstimator.sample(key, first, now);
           if (estimate !== undefined) state.durationSeconds = estimate;

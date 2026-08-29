@@ -53,8 +53,8 @@ abstract class MonitorAction extends SingletonAction<ActionSettings> {
         streamDeck.logger.error(`Monitor render failed: ${error instanceof Error ? error.message : String(error)}`);
       });
     };
-    if (elapsed >= 100) render();
-    else this.pendingRenders.set(id, setTimeout(render, 100 - elapsed));
+    if (elapsed >= 60) render();
+    else this.pendingRenders.set(id, setTimeout(render, 60 - elapsed));
   }
 
   private async render(actionInstance: WillAppearEvent<ActionSettings>["action"], state: PlaybackState, settings: ActionSettings): Promise<void> {

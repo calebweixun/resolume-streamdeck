@@ -2,7 +2,7 @@ import { action, type DidReceiveSettingsEvent, type KeyDownEvent, type KeyUpEven
 import { arena } from "../core/arena-service";
 import { HoldRepeater } from "../core/hold-repeater";
 import type { OscValue } from "../core/osc-codec";
-import { resolveRule, type ActionSettings, type CustomOscSettings, type NudgeSettings, type OscArgument, type TriggerSettings } from "../core/types";
+import { resolveRule, type ActionSettings, type ClearSettings, type CustomOscSettings, type NudgeSettings, type OscArgument, type TriggerSettings } from "../core/types";
 
 async function runWithFeedback(ev: KeyDownEvent, operation: () => Promise<void>): Promise<void> {
   try {
@@ -75,7 +75,15 @@ abstract class CommonCommandAction extends SingletonAction {
 }
 
 @action({ UUID: "com.calebweixun.resolume-monitor.clear-composition" })
-export class ClearCompositionAction extends CommonCommandAction { protected execute() { return arena.disconnectAll(); } }
+export class ClearCompositionAction extends SingletonAction<ClearSettings> {
+  override onKeyDown(ev: KeyDownEvent<ClearSettings>): Promise<void> {
+    const settings = ev.payload.settings;
+    const operation = settings.clearTarget === "layer"
+      ? () => arena.clearLayer(Number(settings.layer ?? 1))
+      : () => arena.disconnectAll();
+    return runWithFeedback(ev, operation);
+  }
+}
 
 @action({ UUID: "com.calebweixun.resolume-monitor.previous-column" })
 export class PreviousColumnAction extends CommonCommandAction { protected execute() { return arena.connectPreviousColumn(); } }

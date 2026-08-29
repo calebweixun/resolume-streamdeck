@@ -26,6 +26,31 @@ afterEach(async () => {
 });
 
 describe("ArenaService UDP integration", () => {
+  it("pulses a layer clear control so it can be triggered repeatedly", async () => {
+    const simulator = dgram.createSocket("udp4");
+    sockets.push(simulator);
+    const arenaPort = await bindRandom(simulator);
+    const replyPort = await availablePort();
+    const received: ReturnType<typeof decodeOscPacket> = [];
+    const messages = new Promise<void>((resolve) => {
+      simulator.on("message", (packet) => {
+        received.push(...decodeOscPacket(packet));
+        if (received.length === 2) resolve();
+      });
+    });
+
+    const service = new ArenaService();
+    services.push(service);
+    await service.configure({ host: "127.0.0.1", arenaPort, replyPort });
+    await service.clearLayer(2);
+    await messages;
+
+    expect(received).toEqual([
+      { address: "/composition/layers/2/clear", args: [1] },
+      { address: "/composition/layers/2/clear", args: [0] }
+    ]);
+  });
+
   it("reads current values before adjusting selected-clip parameters", async () => {
     const simulator = dgram.createSocket("udp4");
     sockets.push(simulator);
