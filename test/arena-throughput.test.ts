@@ -54,6 +54,43 @@ describe("ArenaService high-volume input", () => {
     expect(secondUpdates).toBe(1);
   });
 
+  it("does not treat clip 10 wildcard replies as clip 1 disconnecting", () => {
+    const service = new ArenaService();
+    const arena = internals(service);
+    const rule: MonitoringRule = { mode: "specificLayer", layer: 4, clip: 1 };
+    const updates: PlaybackState[] = [];
+    arena.subscribers.set("monitor", {
+      rule,
+      followGlobal: false,
+      update: (state) => { updates.push(state); }
+    });
+    arena.rebuildMonitoredRules();
+
+    arena.handlePacket(encodeOscMessage("/composition/layers/4/clips/1/connected", [4]));
+    for (let clip = 2; clip <= 27; clip += 1) {
+      arena.handlePacket(encodeOscMessage(`/composition/layers/4/clips/${clip}/connected`, [clip < 6 ? 0 : 1]));
+    }
+
+    expect(arena.states.get("specificLayer:4:1")?.activePath)
+      .toBe("/composition/layers/4/clips/1");
+    expect(updates.at(-1)?.status).toBe("ok");
+    expect(updates.some(({ status }) => status === "no-clip")).toBe(false);
+  });
+
+  it("clears a layer only when the exact active clip disconnects", () => {
+    const service = new ArenaService();
+    const arena = internals(service);
+    const rule: MonitoringRule = { mode: "specificLayer", layer: 4, clip: 1 };
+    arena.subscribers.set("monitor", { rule, followGlobal: false, update: () => undefined });
+    arena.rebuildMonitoredRules();
+
+    arena.handlePacket(encodeOscMessage("/composition/layers/4/clips/1/connected", [4]));
+    arena.handlePacket(encodeOscMessage("/composition/layers/4/clips/1/connected", [1]));
+
+    expect(arena.states.get("specificLayer:4:1")?.activePath).toBe("");
+    expect(arena.states.get("specificLayer:4:1")?.status).toBe("no-clip");
+  });
+
   it("does not flash no-signal during a short reply gap", () => {
     vi.useFakeTimers();
     vi.setSystemTime(4_000);

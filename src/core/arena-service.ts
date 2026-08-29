@@ -307,10 +307,10 @@ export class ArenaService {
 
       if (isLayerRule(rule) && message.address.startsWith(`${base}/clips/`) && message.address.endsWith("/connected")) {
         const code = Number(message.args[0]);
+        const connectedPath = message.address.slice(0, -"/connected".length);
         if (code === 3 || code === 4 || message.args[0] === true) {
-          const activePath = message.address.slice(0, -"/connected".length);
-          if (state.activePath !== activePath) {
-            state.activePath = activePath;
+          if (state.activePath !== connectedPath) {
+            state.activePath = connectedPath;
             state.clipName = "";
             state.durationSeconds = 0;
             state.position = 0;
@@ -319,7 +319,9 @@ export class ArenaService {
           }
           state.status = "ok";
           state.lastReplyAt = now;
-        } else if (!state.activePath || message.address.startsWith(state.activePath)) {
+        } else if (state.activePath === connectedPath) {
+          // OSC wildcard replies arrive once per clip. Compare the full clip
+          // path: `/clips/10` is not a child of an active `/clips/1`.
           state.activePath = "";
           state.status = "no-clip";
           state.lastReplyAt = now;
